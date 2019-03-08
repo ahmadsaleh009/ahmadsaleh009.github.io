@@ -1,0 +1,901 @@
+﻿<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Programming in GIS_FinalProject_ JavaScriptAPI_AhmadSaleh</title>
+    <style>
+        html,
+        body {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        #viewDiv {
+            position: absolute;
+            left: 0;
+            right: 20%;
+            top: 0;
+            bottom: 0;
+            height: 100%;
+        }
+
+      
+
+        #panel {
+            position: absolute;
+            right: 0;
+            height: 100%;
+            width: 20%;
+            overflow: scroll;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+        }
+
+        .dropDown {
+            color: black;
+            padding: 7px 16px;
+            text-decoration: none;
+            display: block;
+        }
+
+        .action-button {
+            font-size: 16px;
+            background-color: transparent;
+            border: 1px solid #D3D3D3;
+            color: #6e6e6e;
+            height: 32px;
+            width: 32px;
+            text-align: center;
+            box-shadow: 0 0 1px rgba(0, 0, 0, 0.3);
+        }
+
+            .action-button:hover,
+            .action-button:focus {
+                background: #0079c1;
+                color: #e4e4e4;
+            }
+
+        .active {
+            background: #0079c1;
+            color: #e4e4e4;
+        }
+
+        #scaleDiv {
+            position: absolute;
+            z-index: 70;
+            left: 0px;
+            right: 0;
+            bottom: 0;
+            box-sizing: border-box;
+            padding: 10px;
+            height: 40px;
+            width: 150px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 14px;
+            line-height: 30px;
+            overflow: hidden
+        }
+
+            #scaleDiv span {
+                color: #F7BE81;
+                font-weight: bold;
+            }
+        
+
+        th, td {
+          
+            color: #F7BE81;
+        }
+
+        .esri-widget {
+            box-sizing: border-box;
+            color: #1bffd2;
+            font-size: 14px;
+            font-family: "Avenir Next W00","Helvetica Neue",Helvetica,Arial,sans-serif;
+            line-height: 1.3em;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+     
+    </style>
+    <script>
+        const options = {
+            // tell Dojo where to load other packages
+            dojoConfig: {
+                async: true,
+                packages: [
+                    {
+                        location: 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.js',
+                        name: 'Chart'
+                    }
+                ]
+            }
+        };
+    </script>
+   <link rel="stylesheet" href="https://js.arcgis.com/4.8/esri/themes/dark/main.css">
+    <script src="https://js.arcgis.com/4.8/"></script>
+
+    <script>
+        var view
+        var pointloc
+        var pointGraphic
+        var schools
+        var Hospitals
+        var law_enf
+        var featureSet
+        var result
+        var resultFeatures
+        require([
+            "esri/Map",
+            "esri/views/MapView",
+            "esri/layers/FeatureLayer",
+            "esri/widgets/Search",
+            "esri/tasks/Locator",
+            "esri/Graphic",
+            "esri/layers/GraphicsLayer",
+            "esri/geometry/Point",
+            "esri/widgets/BasemapToggle",
+            "esri/tasks/QueryTask",
+            "esri/tasks/support/Query",
+            "esri/renderers/smartMapping/statistics/uniqueValues",
+            "esri/tasks/Geoprocessor",
+            "esri/tasks/support/FeatureSet",
+            "esri/core/watchUtils",
+            "esri/widgets/Legend",
+            "esri/widgets/Expand",
+            "esri/widgets/Search",
+            "dojo/dom",
+            "dojo/on",
+            "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.js",
+            "dojo/domReady!"
+        ], function (Map, MapView, FeatureLayer, Search, Locator, Graphic, GraphicsLayer, Point, BasemapToggle, QueryTask, Query, uniqueValues, Geoprocessor, FeatureSet, watchUtils, Legend, Expand, Search,dom, on, Chart) {
+
+            schoolsURL = "https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/services/Public_Schools_cook_il/FeatureServer/0"
+            HospitalsURL = "https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/services/Hospitals_COOKCounty_IL/FeatureServer/0"
+            law_enfURL = "https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/services/Local_Law_Enforcement_Locations_COOKIL/FeatureServer/0"
+            censusTractsURL ="https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/services/CookCounty_Census/FeatureServer/0"
+
+
+            schools = new FeatureLayer({
+                url: schoolsURL,
+
+            });
+
+            
+
+
+            Hospitals = new FeatureLayer({
+                url: HospitalsURL,
+                popupTemplate: {
+                    title: "{NAME}",
+
+                    fieldInfos: [{
+                        fieldName: "NAME",
+                        label: "NAME",
+                       
+                    },
+
+                    {
+                        fieldName: "Type",
+                        label: "Type",
+                        
+                    },
+
+
+                    {
+                        fieldName: "Beds",
+                        label: "Beds",
+                        format: {
+                            places: 0,
+                            digitSeperator: true
+                        },
+
+                        }],
+
+                    content: "<b>Name:</a>" +
+                        "</b> {NAME}" +
+                        "<br><b>Type:</b> {Type}" +
+                        "<br><b>Number of Beds:</b> {Beds} "
+
+
+                }     
+                 });
+
+           
+
+
+            law_enf = new FeatureLayer({
+                url: law_enfURL,
+                    popupTemplate: {
+                    title: "{NAME}",
+
+                    fieldInfos: [{
+                        fieldName: "NAME",
+                        label: "NAME",
+
+                    },
+
+                    {
+                        fieldName: "Type",
+                        label: "Type",
+
+                    },
+
+
+                    {
+                        fieldName: "TELEPHONE",
+                        label: "TELEPHONE",
+                        format: {
+                            places: 0,
+                            digitSeperator: true
+                        },
+
+                    }],
+
+                    content: "<b>Name:</a>" +
+                        "</b> {NAME}" +
+                        "<br><b>Type:</b> {Type}" +
+                        "<br><b>Telephone:</b> {TELEPHONE} "
+
+
+                } 
+            });
+
+            
+            var census = new FeatureLayer({
+                url: censusTractsURL,
+
+                
+            });
+
+
+            var map = new Map({
+                basemap: "gray",
+                layers: [schools, Hospitals, law_enf, census]
+            });
+
+            view = new MapView({
+                container: "viewDiv",
+                map: map,
+                center: [-87.6655, 41.8787],
+                zoom: 14
+            });
+
+
+            schools.title = "Schools"
+            Hospitals.title = "Hospitals"
+            law_enf.title = "Law Enforcement"
+            census.title = "Census Tracts"
+
+            //search
+            var locationGraphic
+            view.on("click", function (event) {
+                locationGraphic = createGraphic(event.mapPoint);
+
+
+
+            });
+            //locater:
+
+
+            var locator = new Locator({
+                url: "http://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer"
+            });
+
+
+            const legendExpand = new Expand({
+                view: view,
+                expandTooltip: "Show Legend",
+                content: new Legend({
+                    view: view,
+                    expanded: false
+                }),
+                expanded: false
+            });
+            view.ui.add(legendExpand, "top-left");
+
+
+            view.ui.add(new Search({
+                view: view
+            }), "top-right");
+      
+          
+
+
+
+            // Toggle layers on off
+            var schoolsToggle = document.getElementById("schoolsLayerChk")
+            var HospitalsToggle = document.getElementById("HospitalsLayerChk")
+            var law_effToggle = document.getElementById("law_effLayerChk")
+            var CensusToggle = document.getElementById("CensusLayerChk")
+            on(schoolsToggle, "change", function () {
+
+                schools.visible = schoolsToggle.checked;
+            });
+
+            on(HospitalsToggle, "change", function () {
+
+
+                Hospitals.visible = HospitalsToggle.checked;
+            });
+
+            on(law_effToggle, "change", function () {
+
+                law_enf.visible = law_effToggle.checked;
+            });
+
+            on(CensusToggle, "change", function () {
+
+                census.visible = CensusToggle.checked;
+            });
+
+            
+
+
+            // Places near schools
+            var selectList = document.getElementById("SelectList")
+            selectList.addEventListener("change", function (event) {
+
+                SearchLocations(event.target.value, locationGraphic.geometry) //view.graphics._items[0].geometry
+
+            })
+
+            schools.popupTemplate = {
+                "title": "School Name : {Name}",
+               
+                "content": feature => {
+
+                    var div = document.createElement("div");
+
+                    
+                    div.appendChild(document.createTextNode("Find Places Nearby:"))
+                    div.appendChild(selectList)
+
+                    return div;
+                   
+
+
+                }
+
+            }
+            //function li(feature) { }
+
+
+            // Query Tool
+            var queryTask
+            var query = new Query({
+
+                returnGeometry: true,
+                outFields: ["*"]
+                , outSpatialReference: map.spatialReference
+            });
+
+
+            var selectedlayer = document.getElementById("LayerNameList")
+            var CityNameslst = document.getElementById("CityNameList")
+
+            on(selectedlayer, "change", function () {
+                var url = String(selectedlayer.value)
+
+                queryTask = new QueryTask({ url: url });
+
+            });
+
+
+            view.when(function () {
+                // add city names to the city name list in the query tool from the schools layer
+                uniqueValues({
+                    layer: schools,
+                    field: "City"
+                }).then(function (response) {
+
+                    var infos = response.uniqueValueInfos;
+                    infos.forEach(function (info) {
+                        var option = document.createElement("option");
+                        option.textContent = info.value;
+                        CityNameslst.appendChild(option);
+                    });
+
+                });
+
+
+                var doQueryRun = document.getElementById("doQueryBtn")
+                doQueryRun.addEventListener("click", doQuery)
+
+            })
+
+            // Find Service Area Tool
+
+            var fillSymbol = {
+                type: "simple-fill", // autocasts as new SimpleFillSymbol()
+                color: [226, 119, 40, 0.75],
+                outline: { // autocasts as new SimpleLineSymbol()
+                    color: [255, 255, 255],
+                    width: 1
+                }
+            };
+
+            var graphicsLayer = new GraphicsLayer();
+            map.add(graphicsLayer);
+
+            gp = new Geoprocessor("https://sampleserver1.arcgisonline.com/ArcGIS/rest/services/Network/ESRI_DriveTime_US/GPServer/CreateDriveTimePolygons");
+            gp.outSpatialReference = map.SpatialReference
+
+
+            var ServiceAreaListDrop = document.getElementById("ServiceAreaList")
+            var DriveTimeMin
+            //event listener for hte driving timedropdown save the dropdown value to variable
+            ServiceAreaListDrop.addEventListener("change", function () { DriveTimeMin = ServiceAreaListDrop.value })
+
+
+            //on btn click go to function
+            var ServiceAreabtn = document.getElementById("FindServiceAreabtn")
+            ServiceAreabtn.addEventListener("click", onMapClick)
+// stop servcie area tool
+            var StopServiceArea = document.getElementById("StopServiceAreabtn")
+            StopServiceArea.addEventListener("click", StopMapClick)
+
+
+            // Add Scale custom widget:
+            view.ui.add("scaleDiv", "bottom-left");
+            watchUtils.whenTrue(view, "stationary", function () {
+                if (view.scale) {
+                    var scaleNum = view.scale.toFixed(0)
+                    ScaleLabel.innerHTML = scaleNum
+
+                }
+
+            })
+
+
+            // Charts:
+
+            var Chartquery = new Query();
+            Chartquery.returnGeometry = true;
+            Chartquery.outFields = ["*"];
+            Chartquery.where = "1=1";
+
+
+           
+            view.on("click", (e) => {
+                Chartquery.geometry = e.mapPoint;
+                census.queryFeatures(Chartquery).then((results) => {
+
+
+                    console.log(results.features[0].attributes)
+                    setContentInfo(results.features[0].attributes)
+
+
+                });
+            });
+
+            //*****************************
+
+            //* Pop up tempaltes:
+
+
+            // Geocoded palces Pop Up tempalte
+            var GeocodedpopupTemplate = { // autocasts as new PopupTemplate()
+                title: "{PlaceName}",
+                fieldInfos: [{
+                    fieldName: "PlaceName",
+                    label: "PlaceName",
+                    format: {
+                        places: 0,
+                        digitSeperator: true
+                    }
+                },
+
+                {
+                    fieldName: "Place_addr",
+                    label: "Place_addr",
+                    format: {
+                        places: 0,
+                        digitSeperator: true
+                    }
+                },
+
+
+
+
+                ],
+
+                content: "<b>Name:</a>" +
+                    "</b> {PlaceName}" +
+                    "<br><b>Address:</b> {Place_addr}" 
+
+            }
+
+
+
+            // Basemap toggle
+            var toggle = new BasemapToggle({
+                view: view,
+            });
+            view.ui.add(toggle, "bottom-right");
+            // Basemap change from dropdown
+            var BasemapList = document.getElementById("basemapsList")
+            BasemapList.addEventListener("change", function () { map.basemap = BasemapList.value })
+
+            //*************************
+
+
+            //* Functions:
+            //*1
+            //geocodes the palce name and return results to the map
+            function SearchLocations(selectedPlace, pt) {
+                view.graphics.removeAll();
+                locator.addressToLocations({
+                    location: pt,
+                    categories: [selectedPlace],
+                    maxLocations: 25,
+                    outFields: ["Place_addr", "PlaceName"]
+                })
+                    .then(function (results) {
+                        view.popup.close();
+                        
+                        results.forEach(function (result) {
+                            view.graphics.add(
+                                new Graphic({
+                                    attributes: result.attributes,
+                                    geometry: result.location,
+                                    symbol: {
+                                        type: "simple-marker",
+                                        color: "#f7a10c",
+                                        size: "16px",
+                                        outline: {
+                                            color: "#000000",
+                                            width: "1.5px"
+                                        }
+                                    },
+                                    popupTemplate: GeocodedpopupTemplate
+                                }));
+                        });
+                        view.goTo({
+                            target: view.graphics
+                        }); 
+                    });
+
+
+
+
+            }
+
+
+            //*2
+            // this is only to store the map location to pass it the the geocoding tool
+
+            function createGraphic(point) {
+
+
+
+                // Create a and add the point
+                var graphic = new Graphic({
+                    geometry: point,
+                    symbol: {
+                        type: "simple-marker",
+                        color: "white",
+                        size: 0
+                    }
+
+                });
+                view.graphics.add(graphic);
+                return graphic;
+            }
+
+
+
+
+            //*3
+            //Query Func.
+            function doQuery() {
+
+                cityQ = CityNameslst.value
+                query.where = "City=" + "\'" + cityQ + "\'"
+                queryTask.execute(query).then(function (results) {
+
+                    view.goTo({
+                        target: results.features
+                    });
+                    dom.byId("printResults").innerHTML = results.features.length +
+                        " results found!";
+                });
+
+                schools.definitionExpression = query.where
+                Hospitals.definitionExpression = query.where
+                law_enf.definitionExpression = query.where
+            }
+
+
+            // Service area functions
+            //*4
+
+            
+            var mapClickevt
+            function onMapClick() {
+                // Pass the map point to compute service area function
+
+                view.graphics.removeAll();
+                mapClickevt = view.on("click", computeServiceArea);
+                dom.byId("StopServiceArealbl").innerHTML = "Started ..."
+
+
+
+            }
+
+            //*5
+            function StopMapClick() {
+                // stop service area function
+                view.graphics.removeAll();
+                mapClickevt.remove()
+                dom.byId("StopServiceArealbl").innerHTML = "Stoped!"
+            }
+
+
+
+            //*6
+            //this fucntion executes the gp task
+            function computeServiceArea(evt) {
+                view.graphics.removeAll();
+                var markerSymbol = {
+                    type: "simple-marker", // autocasts as new SimpleMarkerSymbol()
+                    color: [255, 0, 0],
+                    outline: { // autocasts as new SimpleLineSymbol()
+                        color: [255, 255, 255],
+                        width: 2
+                    }
+                };
+
+
+
+                var graphic = new Graphic(evt.mapPoint, markerSymbol);
+                view.graphics.add(graphic)
+
+                var AAfeatures = [];
+                AAfeatures.push(graphic);
+                featureSet = new FeatureSet();
+                featureSet.features = AAfeatures;
+                var params = { "Input_Location": featureSet, "Drive_Times": DriveTimeMin };
+                gp.execute(params).then(getDriveTimePolys);
+
+                dom.byId("StopServiceArealbl").innerHTML = "Working ." + DriveTimeMin + " min Driving Time"
+
+
+
+
+            }
+
+
+            //*7
+            //shows the GP tool results on the map
+            function getDriveTimePolys(result) {
+
+                var resultFeatures = result.results[0].value.features;
+                console.log(resultFeatures)
+
+                feature = resultFeatures[0]
+                feature.symbol = fillSymbol
+
+                view.graphics.add(feature);
+                dom.byId("StopServiceArealbl").innerHTML = resultFeatures.length + " Driving Area Added!"
+            }
+
+            //***Charts Functions:
+            //*7 - 
+            //create the chart and update it
+                function setContentInfo(results) {
+                    console.log(results.Male_Pop)
+                    dom.byId("MalePoplbl").innerHTML = results.Male_Pop + " Males"
+                    dom.byId("FemalePoplbl").innerHTML = results.FemalePop + " Females"
+
+                    var div = document.getElementById("ss-chart")
+
+
+
+                    var data = {
+                        datasets: [{
+                            data: [results.Male_Pop, results.FemalePop],
+                            backgroundColor: ["#4286f4", "#41f4be"]
+                        }],
+                        labels: [
+                            'Male Pop',
+                            'Female Pop',
+
+                        ]
+                    };
+
+                    // Create a new Chart and hook it to the canvas and then return the canvas.
+                    var myPieChart = new Chart(div, {
+                        type: 'doughnut',
+                        data: data,
+                        options: {
+                            legend: {
+                                labels: {
+                                    // This more specific font property overrides the global property
+                                    fontColor: '#F7BE81'
+                                }
+                            }
+                        }
+                    });
+
+                    return canvas;
+
+
+                }
+            });
+
+
+     
+
+    </script>
+</head>
+<body>
+    <div id="viewDiv"></div>
+    <div id='Panel' class="esri-widget">
+        <!–– Layers on/off  -->
+        <table style="width:100%">
+            <tr>
+                <th>Layers On/Off</th>
+
+            </tr>
+            <tr>
+                <td> <input type="checkbox" id="schoolsLayerChk" checked> Schools  </td>
+            </tr>
+            <tr>
+                <td><input type="checkbox" id="HospitalsLayerChk" checked> Hospitals</td>
+            </tr>
+            <tr>
+                <td><input type="checkbox" id="law_effLayerChk" checked> Police</td>
+            </tr>
+
+            <tr>
+                <td><input type="checkbox" id="CensusLayerChk" checked> Census</td>
+            </tr>
+
+
+            <tr>
+                <th>Basemaps</th>
+
+            </tr>
+
+            <tr>
+                <td>
+                    <select class="dropDown" id="basemapsList">
+                        <option value="gray-vector">Gray vector</option>
+                        <option value="hybrid">Hybrid</option>
+                        <option value="osm">Osm</option>
+                        <option value="streets-navigation-vector">Streets navigation vector</option>
+                        <option value="streets-night-vector">Streets night vector</option>
+
+                        <option value="dark-gray-vector">Dark gray vector</option>
+                    </select>
+
+                </td>
+            </tr>
+
+        </table>
+
+        <hr>
+
+        <table style="width:100%">
+            <tr>
+                <th>Query Tool</th>
+
+            </tr>
+            <tr>
+                <td>
+                    <select class="dropDown" id="LayerNameList">
+                        <option value="" disabled selected>Select Layer</option>
+                        <option value="https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/services/Public_Schools_cook_il/FeatureServer/0">Schools</option>
+                        <option value="https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/services/Hospitals_COOKCounty_IL/FeatureServer/0">Hospitals</option>
+                        <option value="https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/services/Local_Law_Enforcement_Locations_COOKIL/FeatureServer/0">Police</option>
+                    </select>
+                </td>
+            </tr>
+
+            <tr>
+                <td>
+                    <select class="dropDown" id="CityNameList">
+                        <option value="" disabled selected>Select City</option>
+
+                    </select>
+                </td>
+
+
+            </tr>
+            <tr>
+                <td>
+                    <button  class="esri-widget" id="doQueryBtn">Do Query</button>
+                </td>
+
+            </tr>
+            <tr>
+                <td>
+                    <p><span id="printResults"></span></p>
+                </td>
+            </tr>
+        </table>
+
+        <hr>
+        <table style="width:100%">
+            <tr  align="center">
+                <th align="center">Driving Time</th>
+
+            </tr>
+            <tr>
+                <td>
+                    <select class="dropDown" id="ServiceAreaList">
+                        <option value="" disabled selected>Select Time</option>
+                        <option value="2">2 Min</option>
+                        <option value="3">3 Min</option>
+                        <option value="5">5 Min</option>
+                        <option value="10">10 Min</option>
+
+                    </select>
+                </td>
+
+            </tr>
+            <tr>
+                <td>
+                    <button class="esri-widget"  id="FindServiceAreabtn">Find Service Area</buttonclass="esri-widget">
+                </td>
+                <td>
+                    <button  class="esri-widget" id="StopServiceAreabtn">Stop</button>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label id="StopServiceArealbl"></label>
+                </td>
+
+            </tr>
+
+        </table>
+        <hr>
+        <table style="width:100%">
+            <tr>
+                <th>Population Data</th>
+
+            </tr>
+            <tr>
+                <td>
+                    <canvas id="ss-chart" height="100" width="100"></canvas>
+                </td>
+            <tr>
+                <td align="center">
+                    <label id="MalePoplbl" ></label>
+                </td>
+
+            </tr>
+            <tr>
+                <td align="center">
+                    <label id="FemalePoplbl"></label>
+                </td>
+
+            </tr>
+        </table>
+    </div>
+
+    <div class="esri-widget" id="scaleDiv">
+        <span id="ScaleSpan"> Map Scale:</span>
+        <label id="ScaleLabel"></label>
+
+    </div>
+
+
+
+    <select class="dropDown" id="SelectList">
+        <option value="Coffee Shop">Coffee Shops</option>
+        <option value="Food">Food</option>
+        <option value="Hotel">Hotel</option>
+        <option value="Gas Station">Gas Stations</option>
+        <option value="Neighborhood">Neighborhood</option>
+        <option value="Park">Parks</option>
+    </select>
+
+
+</body>
+</html>
